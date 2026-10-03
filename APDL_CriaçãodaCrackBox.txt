@@ -1,0 +1,108 @@
+! ==========================================
+! CRIAR O CUBO DO VCCT ( revisar qual o parâmetro de entrada em cada loop)
+! ==========================================
+! Recuperar o KP da extremidade da trinca (Fazer isso no APDL anterior)
+! 1. 0 Definir as dimensões de cada lado do cubo (parametrizar)
+! 1.1 Dimensão de cada lado do quadrante (sizeBox)
+L_aba = 2E-3 ! Começar por esse valor
+L_box = 4.0E-3! Comprimento do lado da crack box
+
+! 1.2 Criar os keypoints dos vertices ao ponto médio da trinca
+
+!1.2.1 Recuperar keypoints da extremidade
+! O keypoint referencial para a cria;áo dos novos [e o 1003], extremidade da area da trinca superior A_TRINCA_SUP
+P_TS = 1003
+Y_P = KY(P_TS)             ! Coordenada Y da ponta P
+Z_P = KZ(P_TS)             ! Coordenada Z da ponta P
+X_P = KX(P_TS)             ! Altura X constante do plano
+
+! Recupera;áo do outro keypoint de extremidade (A_TRINCA_SUP_DUP)
+ASEL, S,,, A_TRINCA_SUP_DUP,
+LSLA, S
+KSLL, S
+KSEL, R, LOC, X,X_P-1E-3,X_P+1E-3
+KSEL, R, LOC, Y,Y_P-1E-3,Y_P+1E-3
+KSEL, R, LOC, Z,Z_P-1E-3,Z_P+1E-3
+*GET, P_TSD, KP,, NUM, MAX
+ALLSEL,ALL
+
+!1.2.2 Calculo parametrizado dos KP
+! Calculo dos angulos
+Beta = Ang_abertura_rad/2 ! Angulo do segmento (seminscrito)
+Beta_lin = (Beta-(Ang_corda_rad-(PI/2)))
+
+! Criação dos keypoints do vertices
+! Ponto A
+K, 2001, X_P, Y_P+L_aba*COS(Beta_lin), Z_P-L_aba*SIN(Beta_lin)
+! Ponto C
+K, 2002, X_P, Y_P-L_aba*COS(Beta_lin), Z_P+L_aba*SIN(Beta_lin),
+
+! Ponto B
+K, 2003, X_P, Y_P+L_aba*COS(Beta_lin)+L_box*SIN(Beta_lin), Z_P-L_aba*SIN(Beta_lin)+L_box*COS(Beta_lin)
+! Ponto D
+K, 2004, X_P, Y_P-L_aba*COS(Beta_lin)+L_box*SIN(Beta_lin), Z_P+L_aba*SIN(Beta_lin)+L_box*COS(Beta_lin)
+
+! Criação dos keypoints dos pontos médios e centro G
+! Ponto H (Meio AB)
+K, 2005, X_P, Y_P+L_aba*COS(Beta_lin)+(L_box/2)*SIN(Beta_lin), Z_P-L_aba*SIN(Beta_lin)+(L_box/2)*COS(Beta_lin)
+! Ponto E (Meio BD)
+K, 2006, X_P, Y_P+L_box*SIN(Beta_lin), Z_P+L_box*COS(Beta_lin)
+! Ponto F (Meio CD)
+K, 2007, X_P, Y_P-L_aba*COS(Beta_lin)+(L_box/2)*SIN(Beta_lin), Z_P+L_aba*SIN(Beta_lin)+(L_box/2)*COS(Beta_lin)
+! Ponto G (Centro da caixa)
+K, 2008, X_P, Y_P+(L_box/2)*SIN(Beta_lin), Z_P+(L_box/2)*COS(Beta_lin)
+
+!1.2.3 Liga os vertices para formar linhas com o comando LSTR
+LSTR, 2001,P_TS  ! Linha A-P_TS
+LSTR, 2002,P_TSD ! Linha C-P_TSD
+LSTR, 2001,2005  ! Linha A-H
+LSTR, 2002,2007  ! Linha C-F
+LSTR, 2005,2003  ! Linha H-B
+LSTR, 2007,2004  ! Linha F-D
+LSTR, 2003,2006  ! Linha B-E
+LSTR, 2004,2006  ! Linha D-E
+LSTR, 2005,2008  ! Linha H-G
+LSTR, 2006,2008  ! Linha E-G
+LSTR, 2007,2008  ! Linha F-G
+LSTR, P_TS,2008  ! Linha P_TS-G
+LSTR, P_TSD,2008 ! Linha P_TSD-G
+
+!1.3  Criar um sistema local na ponta da trinca/centro do cubo sendo este o kp de origem
+! D[uvida:O kp da direção estará no ponto médio entre os dois keypoints iniciais do cubo ou aponta para a direcao de propagacao
+! No inicio, vamos considerar que aponta para o sentido de propaga;áo 
+KCN = 101 !Numero do novo sistema
+KCS = 0 ! sistema cartesiano
+! O sistema 101 tem origem no centro do cubo (KP 2008)
+! O keypoint que define o sentido positivo do eixo x local eh 2006, 
+! O keypoint 2005 indica a dire;áo do eixo y local e, portanto, o plano xy
+
+CSKP, KCN, KCS, 2008, 2006, 2005
+CSYS,0 ! Volta pro sistema global
+
+!1.4 Cria as área da face superior do cubo ( sentido para formar a Normal na dir positiva de x)
+! 1.4.1. Quadrante Superior Frontal (A - H - G - P_TS)
+A, 2001, 2005, 2008, P_TS
+! 1.4.2. Quadrante Inferior Frontal (C - F - G - P_TSD)
+A, 2002, 2007, 2008, P_TSD
+! 1.4.3. Quadrante Superior Traseiro (H - B - E - G)
+A, 2005, 2003, 2006, 2008
+! 1.4.4. Quadrante Inferior Traseiro (F - D - E - G)
+A, 2004, 2006, 2008, 2007
+
+!1.5 usa VDRAG para extrudar as áreas e criar o volume do CUBO
+! 1.5.1 Descobre o maior ID de área atual (que é a 4ª área recém-criada)
+MAX_AREA=_RETURN
+! 1.5.2. Seleciona a faixa das últimas 4 áreas criadas (de MAX_AREA-3 até MAX_AREA)
+ASEL, S, AREA, , MAX_AREA-3, MAX_AREA
+CM, CRACK_FACE_SUPERIOR, AREA ! cria uma componente com as áreas selecionadas (TESTE)
+! 1.5.3. Extruda no eixo +X (DX = Comp_guia, DY = 0, DZ = 0) 
+VEXT, ALL, , , Comp_guia, 0, 0
+! selecionar os volumes pertencentes as areas da face superior da crack box
+CMSEL,S,CRACK_FACE_SUPERIOR
+VSLA, S,     ! Seleciona os volumes anexados às areas
+! SRestringe a seleção para as áreas desses volumes no plano X de saída
+ASLV, S
+ASEL, R, LOC, X, X_P + Comp_guia - 1E-5, X_P + Comp_guia + 1E-5
+VEXT, ALL, , , Comp_guia, 0, 0
+
+!1.6 Cria a malha  do cubo
