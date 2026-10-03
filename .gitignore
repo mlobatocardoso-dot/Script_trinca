@@ -1,0 +1,22 @@
+# Ambientes virtuais
+.venv/
+env/
+venv/
+
+# Caches e ficheiros compilados
+__pycache__/
+*.pyc
+*.pyo
+
+# Configurações locais de editores
+.vscode/
+.idea/
+
+# Ficheiros temporários e registos do sistema
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
+
+# Ficheiros com chaves ou dados sensíveis
+.env
