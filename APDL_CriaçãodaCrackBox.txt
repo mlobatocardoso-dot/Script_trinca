@@ -16,7 +16,7 @@ Y_P = KY(P_TS)             ! Coordenada Y da ponta P
 Z_P = KZ(P_TS)             ! Coordenada Z da ponta P
 X_P = KX(P_TS)             ! Altura X constante do plano
 
-! Recupera;áo do outro keypoint de extremidade (A_TRINCA_SUP_DUP)
+! Recuperação do outro keypoint de extremidade (A_TRINCA_SUP_DUP)
 ASEL, S,,, A_TRINCA_SUP_DUP,
 LSLA, S
 KSLL, S
@@ -68,8 +68,8 @@ LSTR, P_TS,2008  ! Linha P_TS-G
 LSTR, P_TSD,2008 ! Linha P_TSD-G
 
 !1.3  Criar um sistema local na ponta da trinca/centro do cubo sendo este o kp de origem
-! D[uvida:O kp da direção estará no ponto médio entre os dois keypoints iniciais do cubo ou aponta para a direcao de propagacao
-! No inicio, vamos considerar que aponta para o sentido de propaga;áo 
+! Duvida:O kp da direção estará no ponto médio entre os dois keypoints iniciais do cubo ou aponta para a direcao de propagacao
+! No inicio, vamos considerar que aponta para o sentido de propagação 
 KCN = 101 !Numero do novo sistema
 KCS = 0 ! sistema cartesiano
 ! O sistema 101 tem origem no centro do cubo (KP 2008)
@@ -96,7 +96,11 @@ MAX_AREA=_RETURN
 ASEL, S, AREA, , MAX_AREA-3, MAX_AREA
 CM, CRACK_FACE_SUPERIOR, AREA ! cria uma componente com as áreas selecionadas (TESTE)
 ! 1.5.3. Extruda no eixo +X (DX = Comp_guia, DY = 0, DZ = 0) 
+! Atualiza o numeração dos volumes
+NUMCMP, VOLU
 VEXT, ALL, , , Comp_guia, 0, 0
+! Tentar pegar o ID do primeiro volume criado da crack box?
+VOLU_INIT_BOX=_RETURN 
 ! selecionar os volumes pertencentes as areas da face superior da crack box
 CMSEL,S,CRACK_FACE_SUPERIOR
 VSLA, S,     ! Seleciona os volumes anexados às areas
@@ -105,4 +109,7 @@ ASLV, S
 ASEL, R, LOC, X, X_P + Comp_guia - 1E-5, X_P + Comp_guia + 1E-5
 VEXT, ALL, , , Comp_guia, 0, 0
 
-!1.6 Cria a malha  do cubo
+
+! 1.6 Criar uma componente com volumes da crack box
+VSEL, S, VOLU, , VOLU_INIT_BOX, VOLU_INIT_BOX+7              ! Seleciona os últimos 8 volumes
+CM, VOL_CRACK_BOX, VOLU
