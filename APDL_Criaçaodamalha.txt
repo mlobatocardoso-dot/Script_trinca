@@ -1,1 +1,76 @@
-! Etapas
+! ====================================================================
+! SCRIPT DE MALHA GLOBAL (Executado para cada sub-step)
+! ====================================================================
+ET, 1, SOLID186       ! Elemento Sólido 3D
+ET, 2, SHELL281       ! Elemento de Casca 2D (auxiliar para varredura)
+
+*SET,NE_T    ,  3     !NUMERO DE ELEMENTOS FINITOS NA ESPESSURA   
+*SET,NE_CTB    ,  4   !NUMERO DE ELEMENTOS FINITOS NA CRACK TIP BOX 
+! --------------------------------------------------------------------
+! 1. MALHA DA CRACK BOX (Direta e Estruturada)
+! --------------------------------------------------------------------
+! Aplicar o LESIZE na direção da espessura (Eixo X)
+CMSEL, S, VOL_CRACK_BOX
+ASLV, S
+LSLA, S                                           ! Seleciona as linhas desses volumes
+! Filtra apenas as linhas longitudinais (todas têm o tamanho Comp_guia)
+LSEL, R, LENGTH, , Comp_guia-1e-5, Comp_guia+1e-5
+! Aqui o NE_T será aplicado em CADA UM dos 2 blocos. 
+! Se o total da espessura devia ser NE_T, use (NE_T/2). 
+! Se NE_T é a divisão por bloco, mantenha apenas NE_T.
+LESIZE, ALL, , , NE_T, , , , , 1
+
+! Aplicar o LESIZE no perfil transversal da caixa
+CMSEL, S, VOL_CRACK_BOX
+ASLV, S
+LSLA, S
+! Remove da seleção as linhas da espessura (sobram apenas as da face)
+LSEL, U, LENGTH, , Comp_guia-1e-5, Comp_guia+1e-5 
+LESIZE, ALL, , , NE_CTB, , , , , 1                ! Aplica divisões 
+
+ALLSEL, ALL
+
+! Gerar a malha estruturada 3D (VMESH)
+SMRT, OFF
+MSHAPE, 0, 3D
+MSHKEY, 1             ! Força malha estruturada mapeada
+
+CMSEL, S, VOL_CRACK_BOX
+VMESH, ALL            ! Gera SOLID186 nos 8 volumes da caixa da trinca
+
+! --------------------------------------------------------------------
+! 2. MALHA DA REGIÃO FIXA E TRANSIÇÃO (Técnica VSWEEP)
+! --------------------------------------------------------------------
+! Seleciona todos os volumes EXCETO a Crack Box
+ALLSEL, ALL
+CMSEL, U, VOL_CRACK_BOX
+CM, VOL_RESTANTE, VOLU       ! Agrupa o restante do modelo
+
+! Seleciona as áreas da face frontal (onde Z ou X local é o plano de início)
+! Supondo que a face frontal esteja em X_P:
+CMSEL, S, VOL_RESTANTE
+ASLV, S
+ASEL, R, LOC, X, X_P-1e-5, X_P+1e-5 
+
+! Gera a malha "molde" 2D na face frontal da região fixa
+MSHKEY, 0             ! Desliga a exigência de malha mapeada (permite malha livre 2D)
+AATT, , , 2, ,        ! Usa o SHELL281
+AMESH, ALL            ! Desenha a malha 2D na face
+
+! Faz a varredura para preencher os volumes 3D
+CMSEL, S, VOL_RESTANTE
+VSWEEP, ALL           ! Arrasta o "molde" 2D por toda a espessura usando SOLID186
+
+! --------------------------------------------------------------------
+! 3. LIMPEZA FINAL
+! --------------------------------------------------------------------
+! Apaga a malha auxiliar de casca (importante para não alterar a rigidez da peça)
+ALLSEL, ALL
+ESEL, S, TYPE, , 2    ! Seleciona todos os elementos do tipo SHELL281
+EDELE, ALL            ! Deleta os elementos 2D
+NUMCMP, ELEM          ! Comprime a numeração
+
+! Costura a malha da Crack Box com a malha da Região Fixa
+! ATENÇÃO: Tolerância MUITO PEQUENA (1e-6) para não colar as faces da trinca!
+ALLSEL, ALL
+NUMMRG, NODE, 1e-6
