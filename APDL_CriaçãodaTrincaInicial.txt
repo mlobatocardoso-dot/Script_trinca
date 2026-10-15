@@ -38,14 +38,14 @@ ASEL, S, LOC, Z,desloc_z-1e-5,0+1e-5
 *GET, A_ANTIGA_SUP, AREA,, NUM, MIN
 
 !Criar novos volumes pelo extrude das áreas 143 e 96 ( Na face imutável e original da extremidade da trinca. São áreas que fazem parte da componente VOL_SOLDA)
-A_orig_sup = 59         ! Superior  antes: 143
-A_orig_inf = 55          ! Inferior  depois: 96
+A_orig_sup = 143         ! Superior  antes: 143
+A_orig_inf = 96          ! Inferior  depois: 96
 
 ! ------------------------------------------------------
 ! 2.1 REALIZA O EXTRUDE para criar os novos volumes E SALVA O ID dos volumes e áreas QUE SURGEM NA EXTREMIDADE E DE ONDE PARTIRÁ A O INICIO DA TRINCA
 ! 2.1.1: Isolar e calcular centroides (obs: eles são gerados pelo *get no sistema global)
 ! ------------------------------------------------------
-ASEL, S,,, A_orig_sup
+ASEL, S,,,A_orig_sup
 ASUM !O comando ASUM no ANSYS APDL calcula e exibe estatísticas geométricas para áreas selecionadas.
 *GET, Z_centroide_sup, AREA, 0,CENT,Z
 *GET, X_centroide_sup, AREA, 0,CENT,X
