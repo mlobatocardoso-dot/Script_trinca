@@ -315,6 +315,14 @@ KSLL, S
 NUMMRG, KP, 1e-3 
 ALLSEL,ALL
 
+! ------------------------------------------------------
+! 3.0 Cria uma componente com as áreas que compõem a trinca
+! ------------------------------------------------------
+ASEL, S,,,A_TRINCA_SUP
+ASEL, A,,,A_TRINCA_INF
+ASEL, A,,,A_TRINCA_SUP_DUP
+ASEL, A,,,A_TRINCA_INF_DUP
+CM, TRINCA_TRAJ, AREA
 /REPLOT
 APLOT
 
