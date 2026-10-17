@@ -22,8 +22,8 @@ COORDZ_KP_TRINCA = 0.9442500
 
 WPSTYLE,,,,,,,,1       ! Ativa a visualização do WorkPlane na tela
 WPOFF, 0, 0, desloc_z  ! Move o plano de trabalho no eixo Z Workplane.
-VSBW, 10               ! Corta o Volume 10 usando o plano de trabalho
-VSBW, 11               ! Corta o Volume 11 usando o plano de trabalho
+VSBW, 10               ! Corta o Volume 10 usando o plano de trabalho (inferior)
+VSBW, 11               ! Corta o Volume 11 usando o plano de trabalho (superior)
 
 ! queremos excluir os volumes que estão na frente a uma distancia de  desloc_z 
 CSYS, 4                ! Ativa o sistema de coordenadas do WorkPlane
@@ -38,8 +38,8 @@ ASEL, S, LOC, Z,desloc_z-1e-5,0+1e-5
 *GET, A_ANTIGA_SUP, AREA,, NUM, MIN
 
 !Criar novos volumes pelo extrude das áreas 143 e 96 ( Na face imutável e original da extremidade da trinca. São áreas que fazem parte da componente VOL_SOLDA)
-A_orig_sup = 143         ! Superior  antes: 143
-A_orig_inf = 96          ! Inferior  depois: 96
+A_orig_sup = 143         ! Superior 
+A_orig_inf = 96          ! Inferior  
 
 ! ------------------------------------------------------
 ! 2.1 REALIZA O EXTRUDE para criar os novos volumes E SALVA O ID dos volumes e áreas QUE SURGEM NA EXTREMIDADE E DE ONDE PARTIRÁ A O INICIO DA TRINCA
@@ -323,6 +323,34 @@ ASEL, A,,,A_TRINCA_INF
 ASEL, A,,,A_TRINCA_SUP_DUP
 ASEL, A,,,A_TRINCA_INF_DUP
 CM, TRINCA_TRAJ, AREA
+! ------------------------------------------------------
+! 4.0 Encontra o ID das linhas na região fixa e que se conectam com as linhas superiores da trinca
+! ------------------------------------------------------ 
+! ID do volume antigo de onde parte uma das linhas da trinca
+ALLSEL, ALL
+ASEL, S, AREA,, A_ANTIGA_SUP            ! seleciona a área 10
+VSLA, S, 0                    ! seleciona volumes que tenham qualquer área selecionada
+*GET, V_ANT_SUP, VOLU, 0, NUM, MIN  
+ALLSEL, ALL
+
+! ------------------------------------------------------
+! 5.0 Cria uma componente com as linhas que compõem a face superior da trinca + linhas da parte fixa (volumes onde a trinca inicia)
+! ------------------------------------------------------ 
+! Cria uma seleção com as linhas que compõem a trinca
+CMSEL,S, TRINCA_TRAJ
+LSLA,S
+
+!Adiciona a essa seleção as linhas dos volumes de onde a trinca inicia
+VSEL,S, VOLU,, V_ANT_SUP
+VSEL,A, VOLU,, V_NOVO_SUP
+ASLV, S
+LSLA,A
+
+!Restringe a seleção de linhas para apenas aquelas que compõem a trajetória e de onde ela parte
+LSEL, R, LOC, X, X1-1E-5, X1+1E-5
+LSEL, R, LOC, Z, Z1-1E-5, Z1+1
+CM, L_TRINCA_SUP, LINE
+
 /REPLOT
 APLOT
 
