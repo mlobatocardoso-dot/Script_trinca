@@ -322,35 +322,55 @@ ASEL, S,,,A_TRINCA_SUP
 ASEL, A,,,A_TRINCA_INF
 ASEL, A,,,A_TRINCA_SUP_DUP
 ASEL, A,,,A_TRINCA_INF_DUP
-CM, TRINCA_TRAJ, AREA
+CM, A_TRINCA_TRAJ, AREA
+
+ALLSEL, ALL
+
 ! ------------------------------------------------------
-! 4.0 Encontra o ID das linhas na região fixa e que se conectam com as linhas superiores da trinca
-! ------------------------------------------------------ 
-! ID do volume antigo de onde parte uma das linhas da trinca
+! 4.0 Novo: Cria uma linha que conecta o inicio da superficie da trinca que está do lado do volume antigo a região fixa
+! ------------------------------------------------------
+! 4.1 Encontra o keypoint do volume antigo de  onde inicia uma das linhas superiores das superficies da trinca
+ASEL, S, AREA,, A_ANTIGA_SUP
+LSLA,S
+KSLL, S
+KSEL, R, LOC, X, COORDX_KP_TRINCA-1E-5,COORDX_KP_TRINCA+1E-5
+KSEL, R, LOC, Y,Y_novo_ext-1E-5,Y_novo_ext+1E-5
+KSEL, R, LOC, Z,COORDZ_KP_TRINCA-1E-5,COORDZ_KP_TRINCA+1E-5
+*GET, KP_ANT_SUP, KP,, NUM, MAX
+! Keypoint da região fixa que irá compor a trinca:keypoint 150 (ele também está presenta na componente L_CONTORNO_INT) 
+KSEL, A, KP,, 150
+L, KP_ANT_SUP, 150
+*GET, L_new, LINE,, NUM, MAX     ! Captura o número que o ANSYS escolheu para a linha 
 ALLSEL, ALL
-ASEL, S, AREA,, A_ANTIGA_SUP            ! seleciona a área 10
-VSLA, S, 0                    ! seleciona volumes que tenham qualquer área selecionada
-*GET, V_ANT_SUP, VOLU, 0, NUM, MIN  
-ALLSEL, ALL
+
+! 4.2 Cria uma seleção com as linhas dos volumes que se conectam as duas superficies da trinca
+! Cria uma selelçao de linhas do volume novo que se conectam a trinca na face superior
+VSEL,S, VOLU,, V_NOVO_SUP
+ASLV,S
+LSLA,S
+
+!Restringe a seleção de linhas para apenas aquelas que compõem a trajetória 
+LSEL, R, LOC, X, X1-1E-5, X1+1E-5
+LSEL, R, LOC, Z, Z1-1E-5, Z1+1
+
+! Adiciona a seleção a L_new (criada no passo 4.1 para conseguir, posteriormente, fechar a área trinca+ área fixa interna)
+LSEL, A, LINE,, L_new
+
+CM, L_ADJ_TRINCA, LINE
+
+ALLSEL,ALL
 
 ! ------------------------------------------------------
 ! 5.0 Cria uma componente com as linhas que compõem a face superior da trinca + linhas da parte fixa (volumes onde a trinca inicia)
 ! ------------------------------------------------------ 
-! Cria uma seleção com as linhas que compõem a trinca
-CMSEL,S, TRINCA_TRAJ
+! 5.1 Cria uma seleção com as linhas que compõem a trinca na face de cima 
+CMSEL,S, A_TRINCA_TRAJ
 LSLA,S
-
-!Adiciona a essa seleção as linhas dos volumes de onde a trinca inicia
-VSEL,S, VOLU,, V_ANT_SUP
-VSEL,A, VOLU,, V_NOVO_SUP
-ASLV, S
-LSLA,A
-
-!Restringe a seleção de linhas para apenas aquelas que compõem a trajetória e de onde ela parte
+!Restringe a seleção de linhas para apenas aquelas que compõem a trajetória 
 LSEL, R, LOC, X, X1-1E-5, X1+1E-5
 LSEL, R, LOC, Z, Z1-1E-5, Z1+1
-CM, L_TRINCA_SUP, LINE
 
-/REPLOT
-APLOT
+CM, L_TRINCA_TRAJ_SUP, LINE
+ALLSEL,ALL
+
 
