@@ -6,9 +6,22 @@ ET, 2, SHELL281       ! Elemento de Casca 2D (auxiliar para varredura)
 
 *SET,NE_T    ,  3     !NUMERO DE ELEMENTOS FINITOS NA ESPESSURA   
 *SET,NE_CTB    ,  4   !NUMERO DE ELEMENTOS FINITOS NA CRACK TIP BOX 
+
 ! --------------------------------------------------------------------
 ! 1. MALHA DA CRACK BOX (Direta e Estruturada)
 ! --------------------------------------------------------------------
+! Aplicar o LESIZE no perfil transversal da caixa
+CMSEL, S, VOL_CRACK_BOX
+ASLV, S
+LSLA, S
+! Remove da seleção as linhas da espessura (sobram apenas as da face)
+LSEL, U, LENGTH, , Comp_guia-1e-5, Comp_guia+1e-5 
+! Cria uma componente e aplica a divisão
+CM, L_CRACK_CONT, LINE
+LESIZE, ALL, , , NE_CTB, , , , , 1                ! Aplica divisões 
+
+ALLSEL, ALL
+
 ! Aplicar o LESIZE na direção da espessura (Eixo X)
 CMSEL, S, VOL_CRACK_BOX
 ASLV, S
@@ -20,16 +33,6 @@ LSEL, R, LENGTH, , Comp_guia-1e-5, Comp_guia+1e-5
 ! Se NE_T é a divisão por bloco, mantenha apenas NE_T.
 LESIZE, ALL, , , NE_T, , , , , 1
 
-! Aplicar o LESIZE no perfil transversal da caixa
-CMSEL, S, VOL_CRACK_BOX
-ASLV, S
-LSLA, S
-! Remove da seleção as linhas da espessura (sobram apenas as da face)
-LSEL, U, LENGTH, , Comp_guia-1e-5, Comp_guia+1e-5 
-LESIZE, ALL, , , NE_CTB, , , , , 1                ! Aplica divisões 
-
-ALLSEL, ALL
-
 ! Gerar a malha estruturada 3D (VMESH)
 SMRT, OFF
 MSHAPE, 0, 3D
@@ -38,39 +41,42 @@ MSHKEY, 1             ! Força malha estruturada mapeada
 CMSEL, S, VOL_CRACK_BOX
 VMESH, ALL            ! Gera SOLID186 nos 8 volumes da caixa da trinca
 
-! --------------------------------------------------------------------
-! 2. MALHA DA REGIÃO FIXA E TRANSIÇÃO (Técnica VSWEEP)
-! --------------------------------------------------------------------
-! Seleciona todos os volumes EXCETO a Crack Box
 ALLSEL, ALL
-CMSEL, U, VOL_CRACK_BOX
-CM, VOL_RESTANTE, VOLU       ! Agrupa o restante do modelo
 
-! Seleciona as áreas da face frontal (onde Z ou X local é o plano de início)
-! Supondo que a face frontal esteja em X_P:
-CMSEL, S, VOL_RESTANTE
-ASLV, S
-ASEL, R, LOC, X, X_P-1e-5, X_P+1e-5 
+! --------------------------------------------------------------------
+! 2. CONSTRUÇÃO DA MALHA NA REGIÃO ALTERAVEL (TRANSIÇÃO ENTRE TRINCA+CTB E AREA FIXA)
+! --------------------------------------------------------------------
+! Seleciona a componente de  linhas conectadas a trajetoria da trinca
+CMSEL, S, L_ADJ_TRINCA
+! Seleciona a componente de linhas do contorno interno da região alterável (previamente criada no arquivo original.db)
+CMSEL, A, L_CONTORNO_INT
+! Aplica a divisão das linhas
+LESIZE, ALL, , , NE_T, , , , , 1 ! Dúvida se NE_T seria o valor correto
+ALLSEL, ALL
 
-! Gera a malha "molde" 2D na face frontal da região fixa
+! Seleciona a cópia das linhas da trajetória da trinca
+! Obs: Solução adotada para evitar erro de keypoints coincidentes
+
+CMSEL,S, COPY_L_TRINCA_TRAJ_SUP
+LESIZE, ALL, , , 2*NE_CTB, , , , , 1 ! 2*NE_CTB porque é substep = 1
+ALLSEL,ALL
+
+! Seleciona as linhas que iráo compor a área que será malhada
+CMSEL, S, L_ADJ_TRINCA
+CMSEL, A, L_CONTORNO_INT
+CMSEL,A, COPY_L_TRINCA_TRAJ_SUP
+CMSEL,A, COPY_L_CRACKBOXT
+
+! Evitar keypoints coincidentes
+NUMMRG, KP, 1e-3 
+
+! Cria a grande área que engloba o contorno interno  da região fixa e a trinca
+AL, ALL                        
+AREA_GRANDE = _RETURN
+ASEL, S,,,AREA_GRANDE
 MSHKEY, 0             ! Desliga a exigência de malha mapeada (permite malha livre 2D)
 AATT, , , 2, ,        ! Usa o SHELL281
 AMESH, ALL            ! Desenha a malha 2D na face
-
-! Faz a varredura para preencher os volumes 3D
-CMSEL, S, VOL_RESTANTE
-VSWEEP, ALL           ! Arrasta o "molde" 2D por toda a espessura usando SOLID186
-
 ! --------------------------------------------------------------------
-! 3. LIMPEZA FINAL
+! 3. MALHA DA FIXA
 ! --------------------------------------------------------------------
-! Apaga a malha auxiliar de casca (importante para não alterar a rigidez da peça)
-ALLSEL, ALL
-ESEL, S, TYPE, , 2    ! Seleciona todos os elementos do tipo SHELL281
-EDELE, ALL            ! Deleta os elementos 2D
-NUMCMP, ELEM          ! Comprime a numeração
-
-! Costura a malha da Crack Box com a malha da Região Fixa
-! ATENÇÃO: Tolerância MUITO PEQUENA (1e-6) para não colar as faces da trinca!
-ALLSEL, ALL
-NUMMRG, NODE, 1e-6

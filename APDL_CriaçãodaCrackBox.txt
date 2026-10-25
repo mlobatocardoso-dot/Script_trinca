@@ -10,7 +10,7 @@ L_box = 4.0E-3! Comprimento do lado da crack box
 ! 1.2 Criar os keypoints dos vertices ao ponto médio da trinca
 
 !1.2.1 Recuperar keypoints da extremidade
-! O keypoint referencial para a cria;áo dos novos [e o 1003], extremidade da area da trinca superior A_TRINCA_SUP
+! O keypoint referencial para a criação dos novos é o 1003, extremidade da area da trinca superior A_TRINCA_SUP
 P_TS = 1003
 Y_P = KY(P_TS)             ! Coordenada Y da ponta P
 Z_P = KZ(P_TS)             ! Coordenada Z da ponta P
@@ -65,7 +65,9 @@ LSTR, 2005,2008  ! Linha H-G
 LSTR, 2006,2008  ! Linha E-G
 LSTR, 2007,2008  ! Linha F-G
 LSTR, P_TS,2008  ! Linha P_TS-G
+L_CRACKBOX_TS=_RETURN 
 LSTR, P_TSD,2008 ! Linha P_TSD-G
+L_CRACKBOX_TSD=_RETURN 
 
 !1.3  Criar um sistema local na ponta da trinca/centro do cubo sendo este o kp de origem
 ! Duvida:O kp da direção estará no ponto médio entre os dois keypoints iniciais do cubo ou aponta para a direcao de propagacao
@@ -99,7 +101,8 @@ CM, CRACK_FACE_SUPERIOR, AREA ! cria uma componente com as áreas selecionadas (
 ! Atualiza o numeração dos volumes
 NUMCMP, VOLU
 VEXT, ALL, , , Comp_guia, 0, 0
-! Tentar pegar o ID do primeiro volume criado da crack box?
+
+! Pegar o ID do primeiro volume criado da crack box
 VOLU_INIT_BOX=_RETURN 
 ! selecionar os volumes pertencentes as areas da face superior da crack box
 CMSEL,S,CRACK_FACE_SUPERIOR
@@ -113,3 +116,15 @@ VEXT, ALL, , , Comp_guia, 0, 0
 ! 1.6 Criar uma componente com volumes da crack box
 VSEL, S, VOLU, , VOLU_INIT_BOX, VOLU_INIT_BOX+7              ! Seleciona os últimos 8 volumes
 CM, VOL_CRACK_BOX, VOLU
+
+! 1.7 Criar uma componente com a copia das linhas que conectam a trinca ao centro da crack box
+!Obs:  Solução usada para a criação da malha sem ter problemas com keypoints coincidentes
+
+LSEL, S,,, L_CRACKBOX_TS
+LSEL, A,,, L_CRACKBOX_TSD
+LGEN, 2, ALL, , , 0, 0, 0, 0, 1, 0
+LSEL, U,,, L_CRACKBOX_TS
+LSEL, U,,, L_CRACKBOX_TSD 
+CM, COPY_L_CRACKBOXT, LINE
+
+ALLSEL,ALL

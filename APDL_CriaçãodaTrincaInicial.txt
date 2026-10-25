@@ -361,8 +361,7 @@ CM, L_ADJ_TRINCA, LINE
 ALLSEL,ALL
 
 ! ------------------------------------------------------
-! 5.0 Cria uma componente com as linhas que compõem a face superior da trinca + linhas da parte fixa (volumes onde a trinca inicia)
-! ------------------------------------------------------ 
+! 5.0 Cria uma componente com as linhas que compõem a face superior da trinca 
 ! 5.1 Cria uma seleção com as linhas que compõem a trinca na face de cima 
 CMSEL,S, A_TRINCA_TRAJ
 LSLA,S
@@ -373,4 +372,13 @@ LSEL, R, LOC, Z, Z1-1E-5, Z1+1
 CM, L_TRINCA_TRAJ_SUP, LINE
 ALLSEL,ALL
 
+! teste 2
+! Cria uma cópia das linhas da trinca para ser aplicada na construção da malha
+! Obs: Solução adotada para evitar erro de keypoints coinicidentes
 
+CMSEL, S, L_TRINCA_TRAJ_SUP
+LGEN, 2, ALL, , , 0, 0, 0, 0, 1, 0
+CMSEL, U, L_TRINCA_TRAJ_SUP 
+CM, COPY_L_TRINCA_TRAJ_SUP, LINE
+
+ALLSEL, ALL
